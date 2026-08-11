@@ -1,18 +1,403 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p5.sound@0.4.1/dist/p5.sound.min.js"></script>
-    
-    
-    
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El sonido de los idiomas</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+    }
 
-  </head>
-  <body>
-    <main>
-    </main>
-    <script src="sketch.js"></script>
-  </body>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .nav-modes {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn.secondary {
+      background-color: #64748b;
+    }
+
+    .game-panel {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 800px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .timer-bar-container {
+      width: 100%;
+      height: 12px;
+      background-color: #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background-color: var(--primary);
+      transition: width 0.1s linear, background-color 0.3s ease;
+    }
+
+    .feedback-message {
+      font-size: 1.25rem;
+      font-weight: bold;
+      min-height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .feedback-message.positive { color: var(--success); }
+    .feedback-message.negative { color: var(--danger); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      user-select: none;
+      border: 3px solid transparent;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+
+    .card img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background-color: #f1f5f9;
+    }
+
+    .card span {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .card.correct {
+      border-color: var(--success);
+      background-color: #ecfdf5;
+    }
+
+    .card.wrong {
+      border-color: var(--danger);
+      background-color: #fef2f2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .score-board {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>El sonido de los idiomas</h1>
+    <p>Escucha las frases y pon a prueba tus oídos</p>
+  </header>
+
+  <div class="nav-modes">
+    <button id="btnMode1" class="btn" onclick="switchMode(1)">1. Modo Entrenamiento</button>
+    <button id="btnMode2" class="btn secondary" onclick="switchMode(2)">2. Modo Desafío (10s)</button>
+  </div>
+
+  <div id="gamePanel" class="game-panel hidden">
+    <button id="btnPlaySound" class="btn" onclick="playRandomTargetSound()">🔊 Escuchar Frase</button>
+    <div class="timer-bar-container">
+      <div id="timerBar" class="timer-bar"></div>
+    </div>
+    <div id="feedback" class="feedback-message">Haz clic en "Escuchar Frase" para iniciar</div>
+    <div class="score-board">Puntuación: <span id="score">0</span></div>
+  </div>
+
+  <div class="grid" id="languagesGrid"></div>
+
+  <script>
+    // Banderas vectoriales autogestionadas para garantizar carga instantánea (Senyera e Ikurriña en SVG Data-URI)
+    const senyeraSvg = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Crect width='9' height='6' fill='%23FFD700'/%3E%3Crect y='0.67' width='9' height='0.67' fill='%23DA121A'/%3E%3Crect y='2.00' width='9' height='0.67' fill='%23DA121A'/%3E%3Crect y='3.33' width='9' height='0.67' fill='%23DA121A'/%3E%3Crect y='4.67' width='9' height='0.67' fill='%23DA121A'/%3E%3C/svg%3E";
+    const ikurrinaSvg = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600'%3E%3Crect width='1000' height='600' fill='%23d52b1e'/%3E%3Cpath d='M0,0 L1000,600 M1000,0 L0,600' stroke='%23007b3d' stroke-width='120'/%3E%3Cpath d='M500,0 V600 M0,300 H1000' stroke='%23ffffff' stroke-width='120'/%3E%3C/svg%3E";
+
+    const languages = [
+      {
+        id: 'castellano',
+        name: 'Castellano',
+        langCode: 'es-ES',
+        phrase: 'Hola, bienvenidos a nuestro juego de idiomas.',
+        flagUrl: 'https://flagcdn.com/w320/es.png'
+      },
+      {
+        id: 'portugues',
+        name: 'Portugués',
+        langCode: 'pt-PT',
+        phrase: 'Olá, bem-vindos ao nosso jogo de línguas.',
+        flagUrl: 'https://flagcdn.com/w320/pt.png'
+      },
+      {
+        id: 'italiano',
+        name: 'Italiano',
+        langCode: 'it-IT',
+        phrase: 'Ciao, benvenuti al nostro gioco linguistico.',
+        flagUrl: 'https://flagcdn.com/w320/it.png'
+      },
+      {
+        id: 'frances',
+        name: 'Francés',
+        langCode: 'fr-FR',
+        phrase: 'Bonjour, bienvenue dans notre jeu linguistique.',
+        flagUrl: 'https://flagcdn.com/w320/fr.png'
+      },
+      {
+        id: 'catalan',
+        name: 'Catalán',
+        langCode: 'ca-ES',
+        phrase: 'Hola, benvinguts al nostre joc de llengües.',
+        flagUrl: senyeraSvg
+      },
+      {
+        id: 'aleman',
+        name: 'Alemán',
+        langCode: 'de-DE',
+        phrase: 'Hallo, willkommen zu unserem Sprachspiel.',
+        flagUrl: 'https://flagcdn.com/w320/de.png'
+      },
+      {
+        id: 'chino',
+        name: 'Chino',
+        langCode: 'zh-CN',
+        phrase: '你好，欢迎来到我们的语言游戏。',
+        flagUrl: 'https://flagcdn.com/w320/cn.png'
+      },
+      {
+        id: 'vasco',
+        name: 'Vasco (Euskera)',
+        langCode: 'eu-ES',
+        phrase: 'Kaixo, ongi etorri gure hizkuntza jokora.',
+        flagUrl: ikurrinaSvg
+      }
+    ];
+
+    let currentMode = 1;
+    let targetLanguage = null;
+    let timer = null;
+    let timeLeft = 10;
+    let score = 0;
+    let isWaitingAnswer = false;
+
+    function speakLanguage(langObj) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(langObj.phrase);
+        utterance.lang = langObj.langCode;
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert('Tu navegador no soporta síntesis de voz.');
+      }
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('languagesGrid');
+      grid.innerHTML = '';
+
+      languages.forEach(lang => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = `card-${lang.id}`;
+        card.onclick = () => handleCardClick(lang);
+
+        card.innerHTML = `
+          <img src="${lang.flagUrl}" alt="Bandera de ${lang.name}">
+          <span>${lang.name}</span>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      resetFeedback();
+      clearInterval(timer);
+      window.speechSynthesis.cancel();
+
+      document.getElementById('btnMode1').className = `btn ${mode === 1 ? '' : 'secondary'}`;
+      document.getElementById('btnMode2').className = `btn ${mode === 2 ? '' : 'secondary'}`;
+      
+      const gamePanel = document.getElementById('gamePanel');
+      if (mode === 2) {
+        gamePanel.classList.remove('hidden');
+        score = 0;
+        document.getElementById('score').innerText = score;
+        setFeedback('¡Modo Desafío! Oprime "Escuchar Frase" para iniciar.', '');
+      } else {
+        gamePanel.classList.add('hidden');
+      }
+      clearCardStyles();
+    }
+
+    function handleCardClick(lang) {
+      if (currentMode === 1) {
+        speakLanguage(lang);
+      } else if (currentMode === 2 && isWaitingAnswer) {
+        clearInterval(timer);
+        isWaitingAnswer = false;
+
+        if (lang.id === targetLanguage.id) {
+          score += 10;
+          document.getElementById('score').innerText = score;
+          highlightCard(lang.id, 'correct');
+          setFeedback(`¡Correcto! 🎉 Es ${lang.name}`, 'positive');
+        } else {
+          highlightCard(lang.id, 'wrong');
+          highlightCard(targetLanguage.id, 'correct');
+          setFeedback(`❌ Incorrecto. El idioma era ${targetLanguage.name}`, 'negative');
+        }
+      }
+    }
+
+    function playRandomTargetSound() {
+      clearCardStyles();
+      const randomIndex = Math.floor(Math.random() * languages.length);
+      targetLanguage = languages[randomIndex];
+      
+      speakLanguage(targetLanguage);
+      isWaitingAnswer = true;
+      setFeedback('¿Qué idioma se está hablando? Toca una bandera...', '');
+
+      timeLeft = 10;
+      updateTimerBar();
+
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft -= 0.1;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          isWaitingAnswer = false;
+          highlightCard(targetLanguage.id, 'correct');
+          setFeedback(`⏰ ¡Tiempo agotado! El idioma era ${targetLanguage.name}`, 'negative');
+        }
+      }, 100);
+    }
+
+    function updateTimerBar() {
+      const timerBar = document.getElementById('timerBar');
+      const percentage = Math.max(0, (timeLeft / 10) * 100);
+      timerBar.style.width = `${percentage}%`;
+      
+      if (percentage < 30) {
+        timerBar.style.backgroundColor = 'var(--danger)';
+      } else {
+        timerBar.style.backgroundColor = 'var(--primary)';
+      }
+    }
+
+    function highlightCard(id, state) {
+      const card = document.getElementById(`card-${id}`);
+      if (card) card.classList.add(state);
+    }
+
+    function clearCardStyles() {
+      document.querySelectorAll('.card').forEach(c => {
+        c.classList.remove('correct', 'wrong');
+      });
+    }
+
+    function resetFeedback() {
+      const fb = document.getElementById('feedback');
+      fb.innerText = '';
+      fb.className = 'feedback-message';
+    }
+
+    function setFeedback(msg, type) {
+      const fb = document.getElementById('feedback');
+      fb.innerText = msg;
+      fb.className = `feedback-message ${type}`;
+    }
+
+    renderGrid();
+  </script>
+</body>
 </html>
